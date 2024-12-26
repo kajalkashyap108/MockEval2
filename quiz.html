@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input, select, button {
+      display: block;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 1em;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      border: 2px solid blue;
+      padding: 20px;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+
+    .card.reviewed {
+      border-color: violet;
+    }
+
+    .buttons {
+      margin-top: 10px;
+    }
+
+    .buttons button {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Quiz Management</h1>
+
+  <form id="questionForm">
+    <h2>Add a New Question</h2>
+    <input type="text" id="statement" placeholder="Question Statement" required />
+    <input type="text" id="optionA" placeholder="Option A" required />
+    <input type="text" id="optionB" placeholder="Option B" required />
+    <input type="text" id="optionC" placeholder="Option C" required />
+    <input type="text" id="optionD" placeholder="Option D" required />
+    <select id="correctOption" required>
+      <option value="" disabled selected>Select Correct Option</option>
+      <option value="A">A</option>
+      <option value="B">B</option>
+      <option value="C">C</option>
+      <option value="D">D</option>
+    </select>
+    <button type="submit">Add Question</button>
+  </form>
+
+  <div class="grid-container" id="questionsContainer"></div>
+
+  <script>
+    const apiUrl = 'https://mockback-11.onrender.com/questions';
+
+    async function fetchQuestions() {
+      const response = await fetch(apiUrl);
+      const questions = await response.json();
+
+      const container = document.getElementById('questionsContainer');
+      container.innerHTML = '';
+
+      questions.forEach((question) => {
+        const card = document.createElement('div');
+        card.className = `card ${question.reviewed ? 'reviewed' : ''}`;
+        card.innerHTML = `
+          <h3>${question.statement}</h3>
+          <ul>
+            <li>A: ${question.options.A}</li>
+            <li>B: ${question.options.B}</li>
+            <li>C: ${question.options.C}</li>
+            <li>D: ${question.options.D}</li>
+          </ul>
+          <p><strong>Correct Option:</strong> ${question.correctOption}</p>
+          <div class="buttons">
+            <button onclick="reviewQuestion(${question.id})">Review Question</button>
+            <button onclick="deleteQuestion(${question.id})">Delete Question</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    document.getElementById('questionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const newQuestion = {
+        statement: document.getElementById('statement').value,
+        options: {
+          A: document.getElementById('optionA').value,
+          B: document.getElementById('optionB').value,
+          C: document.getElementById('optionC').value,
+          D: document.getElementById('optionD').value,
+        },
+        correctOption: document.getElementById('correctOption').value,
+        reviewed: false,
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newQuestion),
+      });
+
+      if (response.ok) {
+        alert('Question Created');
+        fetchQuestions();
+        e.target.reset();
+      }
+    });
+
+    async function reviewQuestion(id) {
+      const confirmReview = confirm('Are you sure to review the question?');
+      if (confirmReview) {
+        const response = await fetch(`${apiUrl}/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reviewed: true }),
+        });
+
+        if (response.ok) {
+          alert('Question reviewed! Redirecting to Reviewed Questions Page...');
+          window.location.href = 'questions.html';
+        }
+      }
+    }
+
+    async function deleteQuestion(id) {
+      const confirmDelete = confirm('Are you sure to delete?');
+      if (confirmDelete) {
+        await fetch(`${apiUrl}/${id}`, {
+          method: 'DELETE',
+        });
+        fetchQuestions();
+      }
+    }
+
+    fetchQuestions();
+  </script>
+</body>
+</html>
